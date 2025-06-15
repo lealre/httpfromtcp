@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -15,6 +16,8 @@ func main() {
 	}
 	defer file.Close()
 
+	var currentLine string
+
 	for {
 
 		buffer := make([]byte, 8)
@@ -22,6 +25,9 @@ func main() {
 
 		if err != nil {
 			if err == io.EOF {
+				if currentLine != "" {
+					fmt.Printf("read: %s\n", currentLine)
+				}
 				// log.Print("EOF reached...")
 				break
 			}
@@ -29,7 +35,16 @@ func main() {
 		}
 
 		text := string(buffer[:bytesRead])
-		fmt.Printf("read: %s\n", text)
+
+		if strings.Contains(text, "\n") {
+			subStrings := strings.Split(text, "\n")
+			currentLine += subStrings[0]
+			fmt.Printf("read: %s\n", currentLine)
+			currentLine = subStrings[1]
+			continue
+		}
+		currentLine += text
+
 	}
 
 }
