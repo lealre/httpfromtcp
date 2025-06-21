@@ -8,7 +8,34 @@ import (
 	"strings"
 )
 
-func tcpReader() {
+/*
+TCP Line Reader Server
+
+Usage:
+
+ 1. Start server (with output logging):
+    go run ./cmd/tcplineserver | tee /tmp/tcp.txt
+
+ 2. Send test messages:
+    printf "Hello\nWorld\n" | nc localhost 42069
+    -or-
+    echo "message" | nc localhost 42069
+
+ 3. View logs:
+    cat /tmp/tcp.txt
+
+Behavior:
+- Listens on TCP port 42069
+- Accepts multiple connections sequentially (not concurrently)
+- Reads until connection closes (EOF)
+- Buffers all received data before sending complete message through channel
+- Prints:
+  - Connection events (log.Printf)
+  - Raw message content (fmt.Println)
+
+- Closes connection after EOF
+*/
+func main() {
 	tcpListener, err := net.Listen("tcp", ":42069")
 	if err != nil {
 		log.Fatal(err)
@@ -37,7 +64,7 @@ func tcpReader() {
 	}
 }
 
-func getLinesChannel_(f io.ReadCloser) <-chan string {
+func getLinesChannel(f io.ReadCloser) <-chan string {
 	ch := make(chan string, 100)
 	go func() {
 		defer close(ch)

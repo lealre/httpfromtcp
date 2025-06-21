@@ -8,7 +8,32 @@ import (
 	"time"
 )
 
-func compareRead() {
+/*
+File Reader Benchmark
+
+Usage:
+
+	go run ./cmd/filereader
+
+Behavior:
+- Reads test.pdf using two methods:
+ 1. Entire file at once (os.ReadFile)
+ 2. Chunked reading (1KB buffers)
+
+- Prints timing results for comparison
+- Shows total bytes read in each case
+
+Key Differences:
++---------------+-----------------+-------------------+
+| Method        | Memory Use      | Best For          |
++---------------+-----------------+-------------------+
+| Entire file   | High (file size)| Small files       |
+| 1KB chunks    | Low (1KB)       | Large files       |
++---------------+-----------------+-------------------+
+
+Note: Change bufferSize in code to test different chunk sizes.
+*/
+func main() {
 	filePath := "./test.pdf"
 
 	// Method 1: Read entire file at once (for comparison)
