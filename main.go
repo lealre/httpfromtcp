@@ -1,26 +1,28 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"log"
-	"os"
 	"strings"
 )
 
 func main() {
 	// Reads 8 bytes at a time
-	file, err := os.Open("messages.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
+	// file, err := os.Open("messages.txt")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer file.Close()
 
-	linesChn := getLinesChannel(file)
+	// linesChn := getLinesChannel(file)
 
-	for line := range linesChn {
-		fmt.Printf("read: %s\n", line)
-	}
+	// for line := range linesChn {
+	// 	fmt.Printf("read: %s\n", line)
+	// }
+
+	tcpReader()
+
+	// compareRead()
 
 }
 
