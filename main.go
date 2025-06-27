@@ -1,65 +1,42 @@
 package main
 
 import (
-	"io"
+	"fmt"
 	"log"
-	"strings"
+	"net"
+
+	"github.com/lealre/httpfromtcp/internal/request"
 )
 
 func main() {
-	// Reads 8 bytes at a time
-	// file, err := os.Open("messages.txt")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer file.Close()
+	tcpListener, err := net.Listen("tcp", ":42069")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer tcpListener.Close()
 
-	// linesChn := getLinesChannel(file)
+	log.Printf("Server started, listening on %s", tcpListener.Addr().String())
 
-	// for line := range linesChn {
-	// 	fmt.Printf("read: %s\n", line)
-	// }
-
-	tcpReader()
-
-	// compareRead()
-
-}
-
-func getLinesChannel(f io.ReadCloser) <-chan string {
-	var currentLine string
-	ch := make(chan string, 100)
-	go func() {
-		defer close(ch)
-
-		for {
-			buffer := make([]byte, 8)
-			bytesRead, err := f.Read(buffer)
-
-			if err != nil {
-				if err == io.EOF {
-					if currentLine != "" {
-						ch <- currentLine
-					}
-					// log.Print("EOF reached...")
-					break
-				}
-				log.Fatal(err)
-			}
-
-			text := string(buffer[:bytesRead])
-
-			if strings.Contains(text, "\n") {
-				subStrings := strings.Split(text, "\n")
-				currentLine += subStrings[0]
-				ch <- currentLine
-				currentLine = subStrings[1]
-				continue
-			}
-			currentLine += text
-
+	for {
+		conn, err := tcpListener.Accept()
+		if err != nil {
+			log.Printf("Error accepting connection: %v", err)
+			continue
 		}
-	}()
 
-	return ch
+		log.Printf("New connection accepted from %s", conn.RemoteAddr().String())
+
+		response, err := request.RequestFromReader(conn)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println("Request Line")
+		fmt.Printf("- Method: %s", response.RequestLine.Method)
+		fmt.Printf("- Target: %s", response.RequestLine.RequestTarget)
+		fmt.Printf("- Version: %s", response.RequestLine.HttpVersion)
+
+		conn.Close()
+		log.Printf("Connection from %s closed", conn.RemoteAddr().String())
+	}
 }
