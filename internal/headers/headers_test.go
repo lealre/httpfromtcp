@@ -7,13 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: Add more tests to account for all the edge cases described above. Here are the names of my tests:
-// "Valid single header"
-// "Valid single header with extra whitespace"
-// "Valid 2 headers with existing headers"
-// "Valid done"
-// "Invalid spacing header"
-
 func TestHeadersParse(t *testing.T) {
 	// Test: Valid single header
 	headers := NewHeaders()
@@ -32,5 +25,38 @@ func TestHeadersParse(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, 0, n)
 	assert.False(t, done)
+
+	// Test: Valid single header with extra whitespace
+	headers = NewHeaders()
+	data = []byte("       Host: localhost:42069       \r\n\r\n")
+	n, done, err = headers.Parse(data)
+	require.NoError(t, err)
+	assert.Equal(t, len(data)-2, n)
+	assert.False(t, done)
+
+	// Test: Valid done
+	headers = NewHeaders()
+	data = []byte("\r\n")
+	n, done, err = headers.Parse(data)
+	require.NoError(t, err)
+	assert.Equal(t, 2, n)
+	assert.True(t, done)
+
+	// Test: Valid 2 headers with existing headers
+	headers = NewHeaders()
+	// First header (partial data)
+	data1 := []byte("Host: localhost:42069\r\n")
+	n, done, err = headers.Parse(data1)
+	require.NoError(t, err)
+	assert.Equal(t, len(data1), n)
+	assert.False(t, done)
+	assert.Equal(t, "localhost:42069", headers["Host"])
+	// Second header (remaining data)
+	data2 := []byte("User-Agent: Go-HTTP-Parser\r\n\r\n")
+	n, done, err = headers.Parse(data2)
+	require.NoError(t, err)
+	assert.Equal(t, len(data2)-2, n) // Should consume entire chunk
+	assert.False(t, done)            // \r\n\r\n marks end of headers
+	assert.Equal(t, "Go-HTTP-Parser", headers["User-Agent"])
 
 }
