@@ -14,7 +14,7 @@ func TestHeadersParse(t *testing.T) {
 	n, done, err := headers.Parse(data)
 	require.NoError(t, err)
 	require.NotNil(t, headers)
-	assert.Equal(t, "localhost:42069", headers["Host"])
+	assert.Equal(t, "localhost:42069", headers["host"])
 	assert.Equal(t, 23, n)
 	assert.False(t, done)
 
@@ -50,13 +50,13 @@ func TestHeadersParse(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, len(data1), n)
 	assert.False(t, done)
-	assert.Equal(t, "localhost:42069", headers["Host"])
+	assert.Equal(t, "localhost:42069", headers["host"])
 	// Second header (remaining data)
 	data2 := []byte("User-Agent: Go-HTTP-Parser\r\n\r\n")
 	n, done, err = headers.Parse(data2)
 	require.NoError(t, err)
 	assert.Equal(t, len(data2)-2, n) // Should consume entire chunk
 	assert.False(t, done)            // \r\n\r\n marks end of headers
-	assert.Equal(t, "Go-HTTP-Parser", headers["User-Agent"])
+	assert.Equal(t, "Go-HTTP-Parser", headers["user-agent"])
 
 }
