@@ -38,13 +38,19 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 	if !validTokens([]byte(key)) {
 		return 0, false, fmt.Errorf("invalid header token found: %s", key)
 	}
+
 	h.Set(key, string(value))
 	return idx + 2, false, nil
 }
 
 func (h Headers) Set(key, value string) {
 	key = strings.ToLower(key)
-	h[key] = value
+	if existingValue, contains := h[key]; contains {
+		newValue := fmt.Sprintf("%s, %s", existingValue, value)
+		h[key] = newValue
+	} else {
+		h[key] = value
+	}
 }
 
 var tokenChars = []byte{'!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~'}

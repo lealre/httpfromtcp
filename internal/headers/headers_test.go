@@ -55,8 +55,25 @@ func TestHeadersParse(t *testing.T) {
 	data2 := []byte("User-Agent: Go-HTTP-Parser\r\n\r\n")
 	n, done, err = headers.Parse(data2)
 	require.NoError(t, err)
-	assert.Equal(t, len(data2)-2, n) // Should consume entire chunk
-	assert.False(t, done)            // \r\n\r\n marks end of headers
+	assert.Equal(t, len(data2)-2, n)
+	assert.False(t, done)
 	assert.Equal(t, "Go-HTTP-Parser", headers["user-agent"])
+
+	// Test: Case-insensitive header merging
+	headers = NewHeaders()
+	// First header
+	data1 = []byte("Set-Person: name1\r\n")
+	n, done, err = headers.Parse(data1)
+	require.NoError(t, err)
+	assert.Equal(t, len(data1), n)
+	assert.False(t, done)
+	assert.Equal(t, "name1", headers["set-person"])
+	// Second header
+	data2 = []byte("set-person: name2\r\n\r\n")
+	n, done, err = headers.Parse(data2)
+	require.NoError(t, err)
+	assert.Equal(t, len(data2)-2, n)
+	assert.False(t, done)
+	assert.Equal(t, "name1, name2", headers["set-person"])
 
 }
