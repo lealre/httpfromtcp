@@ -53,6 +53,14 @@ func (h Headers) Set(key, value string) {
 	}
 }
 
+func (h Headers) Get(key string) string {
+	if value, contains := h[key]; contains {
+		return value
+	}
+
+	return ""
+}
+
 var tokenChars = []byte{'!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~'}
 
 // validTokens checks if the data contains only valid tokens
