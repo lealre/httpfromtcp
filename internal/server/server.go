@@ -54,6 +54,7 @@ func (s *Server) handle(conn net.Conn) {
 
 	response.WriteStatusLine(conn, 200)
 	headers := response.GetDefaultHeaders(0)
-	response.WriteHeaders(conn, headers)
-	conn.Write([]byte("\r\n"))
+	if err := response.WriteHeaders(conn, headers); err != nil {
+		fmt.Printf("error: %v", err)
+	}
 }
