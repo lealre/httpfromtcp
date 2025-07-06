@@ -1,27 +1,31 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net"
 	"sync/atomic"
 
+	"github.com/lealre/httpfromtcp/internal/request"
 	"github.com/lealre/httpfromtcp/internal/response"
 )
 
 // Server is an HTTP 1.1 server
 type Server struct {
 	listener net.Listener
+	handler  Handler
 	closed   atomic.Bool
 }
 
-func Serve(port int) (*Server, error) {
+func Serve(port int, handler Handler) (*Server, error) {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return nil, err
 	}
 	s := &Server{
 		listener: listener,
+		handler:  handler,
 	}
 	go s.listen()
 	return s, nil
@@ -52,9 +56,28 @@ func (s *Server) listen() {
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
 
-	response.WriteStatusLine(conn, 200)
-	headers := response.GetDefaultHeaders(0)
-	if err := response.WriteHeaders(conn, headers); err != nil {
-		fmt.Printf("error: %v", err)
+	req, err := request.RequestFromReader(conn)
+	if err != nil {
+		he := &HandlerError{
+			StatusCode: 500,
+			Message:    "error reading the request",
+		}
+		he.Write(conn)
+		return
 	}
+
+	buffer := bytes.NewBuffer([]byte{})
+
+	handlerError := s.handler(buffer, req)
+	if handlerError != nil {
+		handlerError.Write(conn)
+		return
+	}
+
+	b := buffer.Bytes()
+
+	response.WriteStatusLine(conn, response.Ok)
+	headers := response.GetDefaultHeaders(len(b))
+	response.WriteHeaders(conn, headers)
+	conn.Write(b)
 }
