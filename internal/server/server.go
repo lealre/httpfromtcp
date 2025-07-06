@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"net"
@@ -66,18 +65,22 @@ func (s *Server) handle(conn net.Conn) {
 		return
 	}
 
-	buffer := bytes.NewBuffer([]byte{})
+	// buffer := bytes.NewBuffer([]byte{})
 
-	handlerError := s.handler(buffer, req)
-	if handlerError != nil {
-		handlerError.Write(conn)
-		return
+	response := &response.Writer{
+		Writer: conn,
 	}
 
-	b := buffer.Bytes()
+	s.handler(response, req)
+	// if handlerError != nil {
+	// 	handlerError.Write(conn)
+	// 	return
+	// }
 
-	response.WriteStatusLine(conn, response.Ok)
-	headers := response.GetDefaultHeaders(len(b))
-	response.WriteHeaders(conn, headers)
-	conn.Write(b)
+	// b := buffer.Bytes()
+
+	// response.WriteStatusLine(conn, response.Ok)
+	// headers := response.GetDefaultHeaders(len(b))
+	// response.WriteHeaders(conn, headers)
+	// conn.Write(b)
 }

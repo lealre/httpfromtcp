@@ -1,13 +1,15 @@
 package main
 
 import (
-	"io"
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
+	"github.com/lealre/httpfromtcp/internal/headers"
 	"github.com/lealre/httpfromtcp/internal/request"
+	"github.com/lealre/httpfromtcp/internal/response"
 	"github.com/lealre/httpfromtcp/internal/server"
 )
 
@@ -27,22 +29,81 @@ func main() {
 	log.Println("Server gracefully stopped")
 }
 
-func testHandler(w io.Writer, req *request.Request) *server.HandlerError {
+func testHandler(w *response.Writer, req *request.Request) {
+	html400 := `
+<html>
+  <head>
+    <title>400 Bad Request</title>
+  </head>
+  <body>
+    <h1>Bad Request</h1>
+    <p>Your request honestly kinda sucked.</p>
+  </body>
+</html>`
+
 	if req.RequestLine.RequestTarget == "/yourproblem" {
-		return &server.HandlerError{
-			Message:    "Your problem is not my problem\n",
-			StatusCode: 400,
-		}
+		// resp line
+		w.WriteStatusLine(response.BadRequest)
+
+		// headers
+		headers := headers.NewHeaders()
+		contentSize := strconv.Itoa(len(html400))
+		headers.Set("content-length", contentSize)
+		headers.Set("content-type", "text/html")
+		w.WriteHeaders(headers)
+
+		// body
+		w.WriteBody([]byte(html400))
+
 	}
+
+	html500 := `
+<html>
+  <head>
+    <title>500 Internal Server Error</title>
+  </head>
+  <body>
+    <h1>Internal Server Error</h1>
+    <p>Okay, you know what? This one is on me.</p>
+  </body>
+</html>`
 
 	if req.RequestLine.RequestTarget == "/myproblem" {
-		return &server.HandlerError{
-			Message:    "Woopsie, my bad\n",
-			StatusCode: 500,
-		}
+		// resp line
+		w.WriteStatusLine(response.InternalServerError)
+
+		// headers
+		headers := headers.NewHeaders()
+		contentSize := strconv.Itoa(len(html500))
+		headers.Set("content-length", contentSize)
+		headers.Set("content-type", "text/html")
+		w.WriteHeaders(headers)
+
+		// body
+		w.WriteBody([]byte(html500))
 	}
 
-	w.Write([]byte("All good, frfr\n"))
+	html200 := `
+<html>
+  <head>
+    <title>200 OK</title>
+  </head>
+  <body>
+    <h1>Success!</h1>
+    <p>Your request was an absolute banger.</p>
+  </body>
+</html>`
 
-	return nil
+	// resp line
+	w.WriteStatusLine(response.Ok)
+
+	// headers
+	headers := headers.NewHeaders()
+	contentSize := strconv.Itoa(len(html200))
+	headers.Set("content-length", contentSize)
+	headers.Set("content-type", "text/html")
+	w.WriteHeaders(headers)
+
+	// body
+	w.WriteBody([]byte(html200))
 }

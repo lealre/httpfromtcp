@@ -61,6 +61,14 @@ func (h Headers) Get(key string) string {
 	return ""
 }
 
+func (h Headers) ContainsHeaderKey(key string) bool {
+	key = strings.ToLower(key)
+	if _, contains := h[key]; contains {
+		return true
+	}
+	return false
+}
+
 var tokenChars = []byte{'!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~'}
 
 // validTokens checks if the data contains only valid tokens
