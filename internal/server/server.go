@@ -17,6 +17,8 @@ type Server struct {
 	closed   atomic.Bool
 }
 
+type Handler func(w *response.Writer, req *request.Request)
+
 func Serve(port int, handler Handler) (*Server, error) {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -54,33 +56,14 @@ func (s *Server) listen() {
 
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
-
+	resp := response.NewWriter(conn)
 	req, err := request.RequestFromReader(conn)
 	if err != nil {
-		he := &HandlerError{
-			StatusCode: 500,
-			Message:    "error reading the request",
-		}
-		he.Write(conn)
+		resp.WriteStatusLine(response.InternalServerError)
+		body := []byte("error reading the request")
+		resp.WriteHeaders(response.GetDefaultHeaders(len(body)))
+		resp.WriteBody(body)
 		return
 	}
-
-	// buffer := bytes.NewBuffer([]byte{})
-
-	response := &response.Writer{
-		Writer: conn,
-	}
-
-	s.handler(response, req)
-	// if handlerError != nil {
-	// 	handlerError.Write(conn)
-	// 	return
-	// }
-
-	// b := buffer.Bytes()
-
-	// response.WriteStatusLine(conn, response.Ok)
-	// headers := response.GetDefaultHeaders(len(b))
-	// response.WriteHeaders(conn, headers)
-	// conn.Write(b)
+	s.handler(resp, req)
 }

@@ -4,10 +4,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
-	"github.com/lealre/httpfromtcp/internal/headers"
 	"github.com/lealre/httpfromtcp/internal/request"
 	"github.com/lealre/httpfromtcp/internal/response"
 	"github.com/lealre/httpfromtcp/internal/server"
@@ -16,7 +14,7 @@ import (
 const port = 42069
 
 func main() {
-	server, err := server.Serve(port, testHandler)
+	server, err := server.Serve(port, handler)
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
@@ -29,81 +27,68 @@ func main() {
 	log.Println("Server gracefully stopped")
 }
 
-func testHandler(w *response.Writer, req *request.Request) {
-	html400 := `
-<html>
-  <head>
-    <title>400 Bad Request</title>
-  </head>
-  <body>
-    <h1>Bad Request</h1>
-    <p>Your request honestly kinda sucked.</p>
-  </body>
-</html>`
-
+func handler(w *response.Writer, req *request.Request) {
 	if req.RequestLine.RequestTarget == "/yourproblem" {
-		// resp line
-		w.WriteStatusLine(response.BadRequest)
-
-		// headers
-		headers := headers.NewHeaders()
-		contentSize := strconv.Itoa(len(html400))
-		headers.Set("content-length", contentSize)
-		headers.Set("content-type", "text/html")
-		w.WriteHeaders(headers)
-
-		// body
-		w.WriteBody([]byte(html400))
-
+		handler400(w, req)
+		return
 	}
-
-	html500 := `
-<html>
-  <head>
-    <title>500 Internal Server Error</title>
-  </head>
-  <body>
-    <h1>Internal Server Error</h1>
-    <p>Okay, you know what? This one is on me.</p>
-  </body>
-</html>`
-
 	if req.RequestLine.RequestTarget == "/myproblem" {
-		// resp line
-		w.WriteStatusLine(response.InternalServerError)
-
-		// headers
-		headers := headers.NewHeaders()
-		contentSize := strconv.Itoa(len(html500))
-		headers.Set("content-length", contentSize)
-		headers.Set("content-type", "text/html")
-		w.WriteHeaders(headers)
-
-		// body
-		w.WriteBody([]byte(html500))
+		handler500(w, req)
+		return
 	}
+	handler200(w, req)
+}
 
-	html200 := `
-<html>
-  <head>
-    <title>200 OK</title>
-  </head>
-  <body>
-    <h1>Success!</h1>
-    <p>Your request was an absolute banger.</p>
-  </body>
-</html>`
+func handler400(w *response.Writer, _ *request.Request) {
+	w.WriteStatusLine(response.BadRequest)
+	body := []byte(`<html>
+<head>
+<title>400 Bad Request</title>
+</head>
+<body>
+<h1>Bad Request</h1>
+<p>Your request honestly kinda sucked.</p>
+</body>
+</html>
+`)
+	h := response.GetDefaultHeaders(len(body))
+	h.Override("Content-Type", "text/html")
+	w.WriteHeaders(h)
+	w.WriteBody(body)
+}
 
-	// resp line
+func handler500(w *response.Writer, _ *request.Request) {
+	w.WriteStatusLine(response.InternalServerError)
+	body := []byte(`<html>
+<head>
+<title>500 Internal Server Error</title>
+</head>
+<body>
+<h1>Internal Server Error</h1>
+<p>Okay, you know what? This one is on me.</p>
+</body>
+</html>
+`)
+	h := response.GetDefaultHeaders(len(body))
+	h.Override("Content-Type", "text/html")
+	w.WriteHeaders(h)
+	w.WriteBody(body)
+}
+
+func handler200(w *response.Writer, _ *request.Request) {
 	w.WriteStatusLine(response.Ok)
-
-	// headers
-	headers := headers.NewHeaders()
-	contentSize := strconv.Itoa(len(html200))
-	headers.Set("content-length", contentSize)
-	headers.Set("content-type", "text/html")
-	w.WriteHeaders(headers)
-
-	// body
-	w.WriteBody([]byte(html200))
+	body := []byte(`<html>
+<head>
+<title>200 OK</title>
+</head>
+<body>
+<h1>Success!</h1>
+<p>Your request was an absolute banger.</p>
+</body>
+</html>
+`)
+	h := response.GetDefaultHeaders(len(body))
+	h.Override("Content-Type", "text/html")
+	w.WriteHeaders(h)
+	w.WriteBody(body)
 }

@@ -61,12 +61,9 @@ func (h Headers) Get(key string) string {
 	return ""
 }
 
-func (h Headers) ContainsHeaderKey(key string) bool {
+func (h Headers) Override(key, value string) {
 	key = strings.ToLower(key)
-	if _, contains := h[key]; contains {
-		return true
-	}
-	return false
+	h[key] = value
 }
 
 var tokenChars = []byte{'!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~'}

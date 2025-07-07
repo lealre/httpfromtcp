@@ -1,7 +1,6 @@
 package response
 
 import (
-	"fmt"
 	"io"
 	"strconv"
 
@@ -40,16 +39,4 @@ func GetDefaultHeaders(contentLen int) headers.Headers {
 	headers.Set("content-type", "text/plain")
 
 	return headers
-}
-
-func WriteHeaders(w io.Writer, headers headers.Headers) error {
-	for key, value := range headers {
-		keyPair := fmt.Sprintf("%s: %s\r\n", key, value)
-		_, err := w.Write([]byte(keyPair))
-		if err != nil {
-			return err
-		}
-	}
-	w.Write([]byte("\r\n"))
-	return nil
 }
