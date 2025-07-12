@@ -1,15 +1,18 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 
+	"github.com/lealre/httpfromtcp/internal/headers"
 	"github.com/lealre/httpfromtcp/internal/request"
 	"github.com/lealre/httpfromtcp/internal/response"
 	"github.com/lealre/httpfromtcp/internal/server"
@@ -123,14 +126,18 @@ func handlerChunkEncoding(w *response.Writer, req *request.Request) {
 	h.Remove("connection")
 	h.Override("Content-Type", "application/json")
 	h.Set("Transfer-Encoding", "chunked")
+	h.Set("Trailer", "X-Content-SHA256")
+	h.Set("Trailer", "X-Content-Length")
 	w.WriteHeaders(h)
 
 	buff := make([]byte, bufferSize)
+	body := []byte{}
 	for {
 		n, err := resp.Body.Read(buff)
 		fmt.Println("Read", n, "bytes")
 		if n > 0 {
 			_, err = w.WriteChunkedBody(buff[:n])
+			body = append(body, buff[:n]...)
 			if err != nil {
 				fmt.Println("Error writing chunked body:", err)
 				break
@@ -144,6 +151,15 @@ func handlerChunkEncoding(w *response.Writer, req *request.Request) {
 			break
 		}
 	}
+
+	// write trailers
+	trailersHeader := headers.NewHeaders()
+	trailersHeader.Set("X-Content-Length", strconv.Itoa(len(body)))
+	hash := sha256.Sum256(body)
+	trailersHeader.Set("X-Content-SHA256", fmt.Sprintf("%x", hash))
+	w.WriteTrailers(trailersHeader)
+
+	// finish chunk encoding
 	_, err = w.WriteChunkedBodyDone()
 	if err != nil {
 		fmt.Println("Error writing chunked body done:", err)

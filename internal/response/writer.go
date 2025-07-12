@@ -92,3 +92,21 @@ func (w *Writer) WriteChunkedBodyDone() (int, error) {
 	}
 	return totalBytes, nil
 }
+
+func (w *Writer) WriteTrailers(h headers.Headers) error {
+	// trailersValues := h.Get("Trailer")
+	// if trailersValues == "" {
+	// 	return fmt.Errorf("no trailer key found in headers")
+	// }
+
+	w.Writer.Write([]byte("0\r\n"))
+	for key, value := range h {
+		keyPairHeaderValue := fmt.Sprintf("%s: %s\r\n", key, value)
+		_, err := w.Writer.Write([]byte(keyPairHeaderValue))
+		if err != nil {
+			return err
+		}
+	}
+	w.Writer.Write([]byte("\r\n"))
+	return nil
+}
