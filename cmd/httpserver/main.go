@@ -48,6 +48,10 @@ func handler(w *response.Writer, req *request.Request) {
 		handlerChunkEncoding(w, req)
 		return
 	}
+	if req.RequestLine.RequestTarget == "/video" {
+		handlerGetVideo(w, req)
+		return
+	}
 	handler200(w, req)
 }
 
@@ -164,4 +168,18 @@ func handlerChunkEncoding(w *response.Writer, req *request.Request) {
 	if err != nil {
 		fmt.Println("Error writing chunked body done:", err)
 	}
+}
+
+func handlerGetVideo(w *response.Writer, req *request.Request) {
+	w.WriteStatusLine(response.Ok)
+	body, err := os.ReadFile("assets/vim.mp4")
+	if err != nil {
+		fmt.Printf("Error reading from assets/vim.mp4")
+		handler500(w, req)
+		return
+	}
+	h := response.GetDefaultHeaders(len(body))
+	h.Override("Content-Type", "video/mp4")
+	w.WriteHeaders(h)
+	w.WriteBody(body)
 }
