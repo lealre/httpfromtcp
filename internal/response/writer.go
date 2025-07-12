@@ -69,3 +69,26 @@ func (w *Writer) WriteBody(p []byte) (int, error) {
 	}
 	return n, nil
 }
+
+func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
+	bytesSize := fmt.Sprintf("%x\r\n", len(p))
+	representationSize, err := w.Writer.Write([]byte(bytesSize))
+	if err != nil {
+		return 0, err
+	}
+	chunkSize, err := w.Writer.Write(p)
+	if err != nil {
+		return 0, err
+	}
+	w.Writer.Write([]byte("\r\n"))
+
+	return representationSize + chunkSize, nil
+}
+
+func (w *Writer) WriteChunkedBodyDone() (int, error) {
+	totalBytes, err := w.Writer.Write([]byte("0\r\n\r\n"))
+	if err != nil {
+		return 0, err
+	}
+	return totalBytes, nil
+}

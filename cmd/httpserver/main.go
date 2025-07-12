@@ -1,9 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/lealre/httpfromtcp/internal/request"
@@ -12,6 +16,7 @@ import (
 )
 
 const port = 42069
+const bufferSize = 1024
 
 func main() {
 	server, err := server.Serve(port, handler)
@@ -34,6 +39,10 @@ func handler(w *response.Writer, req *request.Request) {
 	}
 	if req.RequestLine.RequestTarget == "/myproblem" {
 		handler500(w, req)
+		return
+	}
+	if strings.HasPrefix(req.RequestLine.RequestTarget, "/httpbin/") {
+		handlerChunkEncoding(w, req)
 		return
 	}
 	handler200(w, req)
@@ -91,4 +100,52 @@ func handler200(w *response.Writer, _ *request.Request) {
 	h.Override("Content-Type", "text/html")
 	w.WriteHeaders(h)
 	w.WriteBody(body)
+}
+
+func handlerChunkEncoding(w *response.Writer, req *request.Request) {
+	path := strings.TrimPrefix(req.RequestLine.RequestTarget, "/httpbin/")
+	url := fmt.Sprintf("https://httpbin.org/%s", path)
+	resp, err := http.Get(url)
+	if err != nil {
+		errorBody := fmt.Sprintf("error executing endpoint: %s", err)
+		w.WriteStatusLine(response.InternalServerError)
+		h := response.GetDefaultHeaders(len(errorBody))
+		w.WriteHeaders(h)
+		w.WriteBody([]byte(errorBody))
+		return
+	}
+
+	defer resp.Body.Close()
+
+	w.WriteStatusLine(response.Ok)
+	h := response.GetDefaultHeaders(0)
+	h.Remove("content-length")
+	h.Remove("connection")
+	h.Override("Content-Type", "application/json")
+	h.Set("Transfer-Encoding", "chunked")
+	w.WriteHeaders(h)
+
+	buff := make([]byte, bufferSize)
+	for {
+		n, err := resp.Body.Read(buff)
+		fmt.Println("Read", n, "bytes")
+		if n > 0 {
+			_, err = w.WriteChunkedBody(buff[:n])
+			if err != nil {
+				fmt.Println("Error writing chunked body:", err)
+				break
+			}
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			fmt.Println("Error reading response body:", err)
+			break
+		}
+	}
+	_, err = w.WriteChunkedBodyDone()
+	if err != nil {
+		fmt.Println("Error writing chunked body done:", err)
+	}
 }
